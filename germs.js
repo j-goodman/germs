@@ -50,11 +50,11 @@
 	  var objects; var Cell; var Clicker; var Blank; var Plasma; var Protein; var Germ;
 	  objects = __webpack_require__(1);
 	  Cell = __webpack_require__(2);
-	  Germ = __webpack_require__(5);
-	  Plasma = __webpack_require__(7);
-	  Clicker = __webpack_require__(3);
-	  Protein = __webpack_require__(8);
-	  Blank = __webpack_require__(4);
+	  Germ = __webpack_require__(4);
+	  Plasma = __webpack_require__(6);
+	  Clicker = __webpack_require__(7);
+	  Protein = __webpack_require__(5);
+	  Blank = __webpack_require__(8);
 	
 	  // 2. INITIALIZE CANVAS
 	  initializeCanvas = function () {
@@ -83,12 +83,13 @@
 	    clicker = new Clicker(objects.length);
 	    clicker.init();
 	    objects.push(clicker);
-	    for (ff=0; ff < 7; ff++) {
+	    for (ff=0; ff < 12; ff++) {
 	      objects.push(new Plasma(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
 	    }
 	    for (ff=0; ff < 120; ff++) {
 	      objects.push(new Protein(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
 	    }
+	    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
 	    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
 	  };
 	
@@ -103,6 +104,7 @@
 	        objects[xx].act();
 	      }
 	    }
+	    console.log(objects.length);
 	  };
 	
 	  // 5. PLAY
@@ -132,7 +134,7 @@
 
 	var Cell; var Util; var objects;
 	objects = __webpack_require__(1);
-	Util = __webpack_require__(6);
+	Util = __webpack_require__(3);
 	Cell = function () {};
 	
 	Cell.prototype.draw = function (ctx) {
@@ -198,6 +200,204 @@
 
 /***/ },
 /* 3 */
+/***/ function(module, exports) {
+
+	var Util = {};
+	
+	Util.inherits = function (ChildClass, BaseClass) {
+	  function Surrogate () { this.constructor = ChildClass; }
+	  Surrogate.prototype = BaseClass.prototype;
+	  ChildClass.prototype = new Surrogate();
+	};
+	
+	Util.distanceBetween = function (firstPos, secondPos) {
+	  xGap = Math.abs(firstPos.x - secondPos.x);
+	  yGap = Math.abs(firstPos.y - secondPos.y);
+	  return(Math.sqrt(xGap*xGap+yGap*yGap));
+	};
+	
+	module.exports = Util;
+
+
+/***/ },
+/* 4 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Germ; var Cell; var Util; var Protein;
+	Util = __webpack_require__(3);
+	Cell = __webpack_require__(2);
+	Protein = __webpack_require__(5);
+	objects = __webpack_require__(1);
+	
+	Germ = function (index, x, y) {
+	  this.index = index;
+	  this.name = 'germ';
+	  this.moveSpeed = 4;
+	  this.active = false;
+	  this.color = '#bb0000';
+	  this.radius = 6;
+	  this.speed = {
+	    x: 0,
+	    y: 0,
+	  };
+	  this.pos = {
+	    x: x,
+	    y: y,
+	  };
+	};
+	
+	Util.inherits(Germ, Cell);
+	
+	Germ.prototype.act = function () {
+	  var aa;
+	  this.pos.x += this.speed.x;
+	  this.pos.y += this.speed.y;
+	  this.color = this.active ? '#ee3333' : '#bb0000';
+	  if (this.radius > 11) {
+	    this.radius = 6;
+	    objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
+	    for (aa=0; aa < 7; aa++) {
+	      objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
+	    }
+	  }
+	};
+	
+	Germ.prototype.eatPlasma = function (plasma) {
+	  this.goTo({x: plasma.pos.x-32+Math.random()*64, y: plasma.pos.y-32+Math.random()*64});
+	  this.radius += 0.02;
+	};
+	
+	module.exports = Germ;
+
+
+/***/ },
+/* 5 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Protein; var Cell; var Util;
+	Util = __webpack_require__(3);
+	Cell = __webpack_require__(2);
+	objects = __webpack_require__(1);
+	
+	Protein = function (index, x, y) {
+	  this.index = index;
+	  this.name = 'protein';
+	  this.moveSpeed = 1;
+	  this.active = false;
+	  this.color = '#00bb00';
+	  this.radius = 4;
+	  this.speed = {
+	    x: 0,
+	    y: 0,
+	  };
+	  this.pos = {
+	    x: x,
+	    y: y,
+	  };
+	};
+	
+	Util.inherits(Protein, Cell);
+	
+	Protein.prototype.act = function () {
+	  this.pos.x += this.speed.x;
+	  this.pos.y += this.speed.y;
+	  this.checkCollisions();
+	};
+	
+	Protein.prototype.checkCollisions = function () {
+	  var jj;
+	  for (jj=0; jj < objects.length; jj++) {
+	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
+	      if (objects[jj].name === 'plasma') {
+	        this.radius -= 0.02;
+	        if (this.radius < 2) {
+	          objects[jj].eatProtein();
+	          this.destroy();
+	        }
+	      }
+	    }
+	  }
+	};
+	
+	
+	module.exports = Protein;
+
+
+/***/ },
+/* 6 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Plasma; var Cell; var Util;
+	Util = __webpack_require__(3);
+	Cell = __webpack_require__(2);
+	objects = __webpack_require__(1);
+	
+	Plasma = function (index, x, y) {
+	  this.index = index;
+	  this.name = 'plasma';
+	  this.moveSpeed = 3;
+	  this.active = false;
+	  this.color = '#0000bb';
+	  this.radius = 10;
+	  this.speed = {
+	    x: 0,
+	    y: 0,
+	  };
+	  this.pos = {
+	    x: x,
+	    y: y,
+	  };
+	};
+	
+	Util.inherits(Plasma, Cell);
+	
+	Plasma.prototype.act = function () {
+	  this.pos.x += this.speed.x;
+	  this.pos.y += this.speed.y;
+	  if (!Math.floor(Math.random()*60)) {
+	    this.seekProtein();
+	  }
+	  this.checkCollisions();
+	};
+	
+	Plasma.prototype.seekProtein = function () {
+	  var target;
+	  target = this.findNearest('protein');
+	  if (target) {
+	    this.goTo(target.pos);
+	  }
+	};
+	
+	Plasma.prototype.eatProtein = function () {
+	  this.radius += 2;
+	  if (this.radius > 19) {
+	    objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
+	    this.radius = 10;
+	  }
+	};
+	
+	Plasma.prototype.checkCollisions = function () {
+	  var jj;
+	  for (jj=0; jj < objects.length; jj++) {
+	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
+	      if (objects[jj].name === 'germ') {
+	        if (this.radius < 4) {
+	          this.destroy();
+	        } else {
+	          this.radius -= 0.04;
+	          objects[jj].eatPlasma(this);
+	        }
+	      }
+	    }
+	  }
+	};
+	
+	
+	module.exports = Plasma;
+
+
+/***/ },
+/* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Clicker; var objects;
@@ -300,7 +500,7 @@
 
 
 /***/ },
-/* 4 */
+/* 8 */
 /***/ function(module, exports) {
 
 	var Blank;
@@ -316,199 +516,6 @@
 	};
 	
 	module.exports = Blank;
-
-
-/***/ },
-/* 5 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Germ; var Cell; var Util;
-	Util = __webpack_require__(6);
-	Cell = __webpack_require__(2);
-	objects = __webpack_require__(1);
-	
-	Germ = function (index, x, y) {
-	  this.index = index;
-	  this.name = 'germ';
-	  this.moveSpeed = 2;
-	  this.active = false;
-	  this.color = '#bb0000';
-	  this.radius = 6;
-	  this.speed = {
-	    x: 0,
-	    y: 0,
-	  };
-	  this.pos = {
-	    x: x,
-	    y: y,
-	  };
-	};
-	
-	Util.inherits(Germ, Cell);
-	
-	Germ.prototype.act = function () {
-	  this.pos.x += this.speed.x;
-	  this.pos.y += this.speed.y;
-	  this.color = this.active ? '#ee3333' : '#bb0000';
-	  if (this.radius > 11) {
-	    this.radius = 6;
-	    objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
-	  }
-	};
-	
-	Germ.prototype.eatPlasma = function (plasma) {
-	  this.goTo({x: plasma.pos.x-32+Math.random()*64, y: plasma.pos.y-32+Math.random()*64});
-	  this.radius += 0.01;
-	};
-	
-	module.exports = Germ;
-
-
-/***/ },
-/* 6 */
-/***/ function(module, exports) {
-
-	var Util = {};
-	
-	Util.inherits = function (ChildClass, BaseClass) {
-	  function Surrogate () { this.constructor = ChildClass; }
-	  Surrogate.prototype = BaseClass.prototype;
-	  ChildClass.prototype = new Surrogate();
-	};
-	
-	Util.distanceBetween = function (firstPos, secondPos) {
-	  xGap = Math.abs(firstPos.x - secondPos.x);
-	  yGap = Math.abs(firstPos.y - secondPos.y);
-	  return(Math.sqrt(xGap*xGap+yGap*yGap));
-	};
-	
-	module.exports = Util;
-
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Plasma; var Cell; var Util;
-	Util = __webpack_require__(6);
-	Cell = __webpack_require__(2);
-	objects = __webpack_require__(1);
-	
-	Plasma = function (index, x, y) {
-	  this.index = index;
-	  this.name = 'plasma';
-	  this.moveSpeed = 1;
-	  this.active = false;
-	  this.color = '#0000bb';
-	  this.radius = 10;
-	  this.speed = {
-	    x: 0,
-	    y: 0,
-	  };
-	  this.pos = {
-	    x: x,
-	    y: y,
-	  };
-	};
-	
-	Util.inherits(Plasma, Cell);
-	
-	Plasma.prototype.act = function () {
-	  this.pos.x += this.speed.x;
-	  this.pos.y += this.speed.y;
-	  if (!Math.floor(Math.random()*60)) {
-	    this.seekProtein();
-	  }
-	  this.checkCollisions();
-	};
-	
-	Plasma.prototype.seekProtein = function () {
-	  var target;
-	  target = this.findNearest('protein');
-	  if (target) {
-	    this.goTo(target.pos);
-	  }
-	};
-	
-	Plasma.prototype.eatProtein = function () {
-	  this.radius += 1.5;
-	  if (this.radius > 19) {
-	    objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
-	    this.radius = 10;
-	  }
-	};
-	
-	Plasma.prototype.checkCollisions = function () {
-	  var jj;
-	  for (jj=0; jj < objects.length; jj++) {
-	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
-	      if (objects[jj].name === 'germ') {
-	        if (this.radius < 4) {
-	          this.destroy();
-	        } else {
-	          this.radius -= 0.02;
-	          objects[jj].eatPlasma(this);
-	        }
-	      }
-	    }
-	  }
-	};
-	
-	
-	module.exports = Plasma;
-
-
-/***/ },
-/* 8 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var Protein; var Cell; var Util;
-	Util = __webpack_require__(6);
-	Cell = __webpack_require__(2);
-	objects = __webpack_require__(1);
-	
-	Protein = function (index, x, y) {
-	  this.index = index;
-	  this.name = 'protein';
-	  this.moveSpeed = 1;
-	  this.active = false;
-	  this.color = '#00bb00';
-	  this.radius = 4;
-	  this.speed = {
-	    x: 0,
-	    y: 0,
-	  };
-	  this.pos = {
-	    x: x,
-	    y: y,
-	  };
-	};
-	
-	Util.inherits(Protein, Cell);
-	
-	Protein.prototype.act = function () {
-	  this.pos.x += this.speed.x;
-	  this.pos.y += this.speed.y;
-	  this.checkCollisions();
-	};
-	
-	Protein.prototype.checkCollisions = function () {
-	  var jj;
-	  for (jj=0; jj < objects.length; jj++) {
-	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
-	      if (objects[jj].name === 'plasma') {
-	        this.radius -= 0.02;
-	        if (this.radius < 2) {
-	          objects[jj].eatProtein();
-	          this.destroy();
-	        }
-	      }
-	    }
-	  }
-	};
-	
-	
-	module.exports = Protein;
 
 
 /***/ }

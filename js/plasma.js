@@ -6,7 +6,7 @@ objects = require('./objects.js');
 Plasma = function (index, x, y) {
   this.index = index;
   this.name = 'plasma';
-  this.moveSpeed = 1;
+  this.moveSpeed = 3;
   this.active = false;
   this.color = '#0000bb';
   this.radius = 10;
@@ -40,7 +40,7 @@ Plasma.prototype.seekProtein = function () {
 };
 
 Plasma.prototype.eatProtein = function () {
-  this.radius += 1.5;
+  this.radius += 2;
   if (this.radius > 19) {
     objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
     this.radius = 10;
@@ -55,7 +55,7 @@ Plasma.prototype.checkCollisions = function () {
         if (this.radius < 4) {
           this.destroy();
         } else {
-          this.radius -= 0.02;
+          this.radius -= 0.04;
           objects[jj].eatPlasma(this);
         }
       }

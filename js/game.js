@@ -37,12 +37,13 @@ Window.newGame = function () {
     clicker = new Clicker(objects.length);
     clicker.init();
     objects.push(clicker);
-    for (ff=0; ff < 7; ff++) {
+    for (ff=0; ff < 12; ff++) {
       objects.push(new Plasma(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
     }
     for (ff=0; ff < 120; ff++) {
       objects.push(new Protein(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
     }
+    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
     objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
   };
 
@@ -57,6 +58,7 @@ Window.newGame = function () {
         objects[xx].act();
       }
     }
+    console.log(objects.length);
   };
 
   // 5. PLAY

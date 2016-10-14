@@ -1,12 +1,13 @@
-var Germ; var Cell; var Util;
+var Germ; var Cell; var Util; var Protein;
 Util = require('./util.js');
 Cell = require('./cell.js');
+Protein = require('./protein.js');
 objects = require('./objects.js');
 
 Germ = function (index, x, y) {
   this.index = index;
   this.name = 'germ';
-  this.moveSpeed = 2;
+  this.moveSpeed = 4;
   this.active = false;
   this.color = '#bb0000';
   this.radius = 6;
@@ -23,18 +24,22 @@ Germ = function (index, x, y) {
 Util.inherits(Germ, Cell);
 
 Germ.prototype.act = function () {
+  var aa;
   this.pos.x += this.speed.x;
   this.pos.y += this.speed.y;
   this.color = this.active ? '#ee3333' : '#bb0000';
   if (this.radius > 11) {
     this.radius = 6;
     objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
+    for (aa=0; aa < 7; aa++) {
+      objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
+    }
   }
 };
 
 Germ.prototype.eatPlasma = function (plasma) {
   this.goTo({x: plasma.pos.x-32+Math.random()*64, y: plasma.pos.y-32+Math.random()*64});
-  this.radius += 0.01;
+  this.radius += 0.02;
 };
 
 module.exports = Germ;
