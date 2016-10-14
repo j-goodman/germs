@@ -23,6 +23,14 @@ Germ = function (index, x, y) {
 
 Util.inherits(Germ, Cell);
 
+Germ.prototype.seekPlasma = function () {
+  var target;
+  target = this.findNearest('plasma');
+  if (target) {
+    this.goTo(target.pos);
+  }
+};
+
 Germ.prototype.act = function () {
   var aa;
   this.pos.x += this.speed.x;
@@ -30,11 +38,15 @@ Germ.prototype.act = function () {
   this.color = this.active ? '#ee3333' : '#bb0000';
   if (this.radius > 11) {
     this.radius = 6;
-    objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
-    for (aa=0; aa < 7; aa++) {
-      objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
+    if (window.cooldown < 0) {
+      objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
+      for (aa=0; aa < 12; aa++) {
+        objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
+      }
+      window.cooldown = 32;
     }
   }
+  // if (!Math.floor(Math.random()*60)) { this.seekPlasma(); }
 };
 
 Germ.prototype.eatPlasma = function (plasma) {

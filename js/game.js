@@ -45,6 +45,7 @@ Window.newGame = function () {
     }
     objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
     objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
+    window.cooldown = 0;
   };
 
   // 5. DEFINE INTERVAL FUNCTION
@@ -58,6 +59,7 @@ Window.newGame = function () {
         objects[xx].act();
       }
     }
+    window.cooldown -= 1;
     console.log(objects.length);
   };
 

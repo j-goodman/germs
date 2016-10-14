@@ -42,7 +42,10 @@ Plasma.prototype.seekProtein = function () {
 Plasma.prototype.eatProtein = function () {
   this.radius += 2;
   if (this.radius > 19) {
-    objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
+    if (window.cooldown < 0) {
+      objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
+      window.cooldown = 32;
+    }
     this.radius = 10;
   }
 };
