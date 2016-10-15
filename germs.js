@@ -52,9 +52,10 @@
 	  Cell = __webpack_require__(2);
 	  Germ = __webpack_require__(4);
 	  Plasma = __webpack_require__(6);
-	  Clicker = __webpack_require__(7);
+	  Leuko = __webpack_require__(7);
+	  Clicker = __webpack_require__(8);
 	  Protein = __webpack_require__(5);
-	  Blank = __webpack_require__(8);
+	  Blank = __webpack_require__(9);
 	
 	  // 2. INITIALIZE CANVAS
 	  initializeCanvas = function () {
@@ -79,18 +80,28 @@
 	
 	  // 4. INITIALIZE WORLD
 	  initializeWorld = function () {
-	    var clicker; var ff;
+	    var clicker; var ff; var count;
+	    count = {
+	      leuko: 2,
+	      germ: 4,
+	      plasma: 12,
+	      protein: 240,
+	    };
 	    clicker = new Clicker(objects.length);
 	    clicker.init();
 	    objects.push(clicker);
-	    for (ff=0; ff < 12; ff++) {
+	    for (ff=0; ff < count.plasma; ff++) {
 	      objects.push(new Plasma(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
 	    }
-	    for (ff=0; ff < 120; ff++) {
+	    for (ff=0; ff < count.protein; ff++) {
 	      objects.push(new Protein(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
 	    }
-	    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
-	    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
+	    for (ff=0; ff < count.germ; ff++) {
+	      objects.push(new Germ(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
+	    }
+	    for (ff=0; ff < count.leuko; ff++) {
+	      objects.push(new Leuko(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
+	    }
 	    window.cooldown = 0;
 	  };
 	
@@ -106,14 +117,14 @@
 	      }
 	    }
 	    window.cooldown -= 1;
-	    console.log(objects.length);
+	    // console.log(objects.length);
 	  };
 	
 	  // 5. PLAY
 	  play = function () {
 	    var interval; var xx;
 	    initializeWorld();
-	    interval = setInterval(intervalFunction, 32);
+	    interval = setInterval(intervalFunction, 1);
 	  };
 	  initializeCanvas();
 	  play();
@@ -141,12 +152,19 @@
 	
 	Cell.prototype.draw = function (ctx) {
 	  ctx.beginPath();
+	  if (this.radius < 0) {
+	    this.radius = 1;
+	  }
+	  if (this.alpha) {
+	    ctx.globalAlpha = this.alpha;
+	  }
 	  ctx.arc(this.pos.x, this.pos.y, this.radius, 0, 2*Math.PI);
 	  ctx.fillStyle = this.color;
 	  ctx.fill();
+	  ctx.globalAlpha = 1;
 	};
 	
-	Cell.prototype.goTo = function (dest) {
+	Cell.prototype.goTo = function (dest, neg) {
 	  this.moveTowards(dest);
 	  window.clearInterval(this.interval);
 	  this.interval = window.setInterval(function () {
@@ -159,7 +177,7 @@
 	    yOff = (Math.random()*100)-50;
 	    tempDest.x += xOff;
 	    tempDest.y += yOff;
-	    this.moveTowards(tempDest);
+	    this.moveTowards(tempDest, neg);
 	    if (Math.abs(this.pos.x - dest.x) < xOff+8 && Math.abs(this.pos.y - dest.y) < yOff+8) {
 	      this.speed = {
 	        x: 0,
@@ -170,13 +188,22 @@
 	  }.bind(this), 1800-(Math.random()*1800));
 	};
 	
-	Cell.prototype.moveTowards = function (dest) {
-	  this.speed.x = -((this.pos.x - dest.x)/(Math.sqrt(
-	    Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
-	  )/this.moveSpeed));
-	  this.speed.y = -((this.pos.y - dest.y)/(Math.sqrt(
-	    Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
-	  )/this.moveSpeed));
+	Cell.prototype.moveTowards = function (dest, neg) {
+	  if (!neg) {
+	    this.speed.x = -((this.pos.x - dest.x)/(Math.sqrt(
+	      Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
+	    )/this.dna.moveSpeed));
+	    this.speed.y = -((this.pos.y - dest.y)/(Math.sqrt(
+	      Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
+	    )/this.dna.moveSpeed));
+	  } else {
+	    this.speed.x = ((this.pos.x - dest.x)/(Math.sqrt(
+	      Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
+	    )/this.dna.moveSpeed));
+	    this.speed.y = ((this.pos.y - dest.y)/(Math.sqrt(
+	      Math.pow((this.pos.x - dest.x), 2) + Math.pow((this.pos.y - dest.y), 2)
+	    )/this.dna.moveSpeed));
+	  }
 	};
 	
 	Cell.prototype.destroy = function () {
@@ -231,13 +258,26 @@
 	Protein = __webpack_require__(5);
 	objects = __webpack_require__(1);
 	
-	Germ = function (index, x, y) {
+	Germ = function (index, x, y, dna) {
 	  this.index = index;
+	  this.age = 0;
 	  this.name = 'germ';
+	  if (!dna) {
+	    this.dna = {
+	      moveSpeed: 1.75,
+	      initRadius: 6,
+	      mitosisRadius: 11,
+	      proteinAttraction: 0,
+	      plasmaAttraction: 7,
+	      proteinYield: 7,
+	    };
+	  } else {
+	    this.dna = dna;
+	  }
 	  this.moveSpeed = 4;
 	  this.active = false;
 	  this.color = '#bb0000';
-	  this.radius = 6;
+	  this.radius = this.dna.initRadius;
 	  this.speed = {
 	    x: 0,
 	    y: 0,
@@ -258,27 +298,78 @@
 	  }
 	};
 	
+	Germ.prototype.seekProtein = function () {
+	  var target;
+	  target = this.findNearest('protein');
+	  if (target) {
+	    if (this.dna.proteinAttraction > 0) {
+	      this.goTo(target.pos);
+	    } else {
+	      this.goTo(target.pos, true);
+	    }
+	  }
+	};
+	
 	Germ.prototype.act = function () {
 	  var aa;
 	  this.pos.x += this.speed.x;
 	  this.pos.y += this.speed.y;
 	  this.color = this.active ? '#ee3333' : '#bb0000';
-	  if (this.radius > 11) {
-	    this.radius = 6;
-	    if (window.cooldown < 0) {
-	      objects.push(new Germ(objects.length, this.pos.x, this.pos.y));
-	      for (aa=0; aa < 12; aa++) {
-	        objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
-	      }
-	      window.cooldown = 32;
-	    }
+	  if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
+	    this.replicate();
 	  }
-	  // if (!Math.floor(Math.random()*60)) { this.seekPlasma(); }
+	  if (Math.floor(Math.random()*210) < this.dna.plasmaAttraction) { this.seekPlasma(); }
+	  if (Math.floor(Math.random()*210) < Math.abs(this.dna.proteinAttraction)) { this.seekPlasma(); }
+	  this.age += 1;
+	  if (this.age > 1800) {
+	    this.radius -= 0.002;
+	  }
+	  if (this.radius < this.dna.initRadius/2) {
+	    this.destroy();
+	  }
+	  this.checkCollisions();
+	  if (this.radius > this.dna.mitosisRadius) { this.radius = this.dna.mitosisRadius; }
 	};
 	
 	Germ.prototype.eatPlasma = function (plasma) {
 	  this.goTo({x: plasma.pos.x-32+Math.random()*64, y: plasma.pos.y-32+Math.random()*64});
 	  this.radius += 0.02;
+	};
+	
+	Germ.prototype.checkCollisions = function () {
+	  var ee;
+	  for (ee=0; ee < objects.length; ee++) {
+	    if (objects[ee] && objects[ee].pos && objects[ee].radius && Util.distanceBetween(objects[ee].pos, this.pos) < this.radius+objects[ee].radius) {
+	      if (objects[ee].name === 'leuko') {
+	        this.radius -= 0.02;
+	        objects[ee].eatGerm(this);
+	      }
+	    }
+	  }
+	};
+	
+	Germ.prototype.replicate = function () {
+	  var dnaCopy; var mutationFactor;
+	  mutationFactor = Math.random()*5;
+	  if (mutationFactor < 2.5) { mutationFactor = 0; }
+	  dnaCopy = {
+	    moveSpeed: this.dna.moveSpeed + (Math.random()-0.5)*mutationFactor,
+	    initRadius: this.dna.initRadius + (Math.random()-0.5)*mutationFactor,
+	    mitosisRadius: this.dna.mitosisRadius + (Math.random()-0.5)*mutationFactor,
+	    proteinAttraction: this.dna.proteinAttraction + (Math.random()-0.5)*mutationFactor,
+	    plasmaAttraction: this.dna.plasmaAttraction + (Math.random()-0.5)*mutationFactor,
+	    proteinYield: this.dna.proteinYield + (Math.random()-0.5)*mutationFactor,
+	  };
+	  if (dnaCopy.initRadius < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.moveSpeed < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.mitosisRadius < 2) { dnaCopy.initRadius = 3; }
+	  if (dnaCopy.mitosisRadius < dnaCopy.initRadius) { dnaCopy.mitosisRadius = dnaCopy.initRadius + 0.5; }
+	  this.radius = this.dna.initRadius;
+	  objects.push(new Germ(objects.length, this.pos.x, this.pos.y, dnaCopy));
+	  for (aa=0; aa < this.dna.proteinYield; aa++) {
+	    objects.push(new Protein(objects.length, this.pos.x-16+Math.random()*32, this.pos.y-16+Math.random()*32));
+	  }
+	  window.cooldown = 32;
 	};
 	
 	module.exports = Germ;
@@ -293,13 +384,23 @@
 	Cell = __webpack_require__(2);
 	objects = __webpack_require__(1);
 	
-	Protein = function (index, x, y) {
+	Protein = function (index, x, y, dna) {
 	  this.index = index;
 	  this.name = 'protein';
+	  this.age = 0;
 	  this.moveSpeed = 1;
 	  this.active = false;
 	  this.color = '#00bb00';
-	  this.radius = 4;
+	  if (!dna) {
+	    this.dna = {
+	      initRadius: 5-(Math.random()*2),
+	      mitosisRadius: 6,
+	      ageCapCent: 18,
+	    };
+	  } else {
+	    this.dna = dna;
+	  }
+	  this.radius = this.dna.initRadius;
 	  this.speed = {
 	    x: 0,
 	    y: 0,
@@ -313,9 +414,20 @@
 	Util.inherits(Protein, Cell);
 	
 	Protein.prototype.act = function () {
+	  this.age += 1;
 	  this.pos.x += this.speed.x;
 	  this.pos.y += this.speed.y;
 	  this.checkCollisions();
+	  this.radius += 0.002;
+	  if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
+	    this.replicate();
+	  }
+	  if (this.age > this.dna.ageCapCent*100) {
+	    this.radius -= 0.01;
+	  }
+	  if (this.radius < 1) {
+	    this.destroy();
+	  }
 	};
 	
 	Protein.prototype.checkCollisions = function () {
@@ -324,15 +436,32 @@
 	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
 	      if (objects[jj].name === 'plasma') {
 	        this.radius -= 0.02;
-	        if (this.radius < 2) {
-	          objects[jj].eatProtein();
-	          this.destroy();
-	        }
+	        objects[jj].eatProtein();
 	      }
 	    }
 	  }
 	};
 	
+	Protein.prototype.replicate = function () {
+	  this.pos.x += (Math.random()*32-16);
+	  this.pos.y += (Math.random()*32-16);
+	  var dnaCopy; var mutationFactor;
+	  mutationFactor = Math.random()*2;
+	  if (mutationFactor < 1) { mutationFactor = 0; }
+	  dnaCopy = {
+	    initRadius: this.dna.initRadius + (Math.random()-0.5)*mutationFactor,
+	    mitosisRadius: this.dna.mitosisRadius + (Math.random()-0.5)*mutationFactor,
+	    ageCapCent: this.dna.ageCapCent + (Math.random()-0.5)*mutationFactor,
+	  };
+	  if (dnaCopy.initRadius < 0) { dnaCopy.initRadius = 1; }
+	  if (dnaCopy.mitosisRadius < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.mitosisRadius < dnaCopy.initRadius) { dnaCopy.mitosisRadius = dnaCopy.initRadius + 0.5; }
+	  objects.push(new Protein(objects.length, this.pos.x+(Math.random()*32-16), this.pos.y+(Math.random()*32-16), dnaCopy));
+	  objects.push(new Protein(objects.length, this.pos.x+(Math.random()*32-16), this.pos.y+(Math.random()*32-16), dnaCopy));
+	  window.cooldown = 32;
+	  this.radius = this.dna.initRadius;
+	  this.age /= 2;
+	};
 	
 	module.exports = Protein;
 
@@ -346,13 +475,22 @@
 	Cell = __webpack_require__(2);
 	objects = __webpack_require__(1);
 	
-	Plasma = function (index, x, y) {
+	Plasma = function (index, x, y, dna) {
 	  this.index = index;
 	  this.name = 'plasma';
-	  this.moveSpeed = 3;
+	  this.age = 0;
 	  this.active = false;
 	  this.color = '#0000bb';
-	  this.radius = 10;
+	  if (!dna) {
+	    this.dna = {
+	      moveSpeed: 1,
+	      initRadius: 8,
+	      mitosisRadius: 14,
+	    };
+	  } else {
+	    this.dna = dna;
+	  }
+	  this.radius = this.dna.initRadius;
 	  this.speed = {
 	    x: 0,
 	    y: 0,
@@ -372,6 +510,13 @@
 	    this.seekProtein();
 	  }
 	  this.checkCollisions();
+	  this.age += 1;
+	  if (this.age > 1800) {
+	    this.radius -= 0.01;
+	  }
+	  if (this.radius < this.dna.initRadius/2) {
+	    this.destroy();
+	  }
 	};
 	
 	Plasma.prototype.seekProtein = function () {
@@ -383,38 +528,187 @@
 	};
 	
 	Plasma.prototype.eatProtein = function () {
-	  this.radius += 2;
-	  if (this.radius > 19) {
-	    if (window.cooldown < 0) {
-	      objects.push(new Plasma(objects.length, this.pos.x, this.pos.y));
-	      window.cooldown = 32;
-	    }
-	    this.radius = 10;
+	  this.radius += 0.02;
+	  if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
+	    this.replicate();
 	  }
+	  if (this.radius > this.dna.mitosisRadius) { this.radius = this.dna.mitosisRadius; }
 	};
 	
 	Plasma.prototype.checkCollisions = function () {
 	  var jj;
 	  for (jj=0; jj < objects.length; jj++) {
 	    if (objects[jj] && objects[jj].pos && objects[jj].radius && Util.distanceBetween(objects[jj].pos, this.pos) < this.radius+objects[jj].radius) {
-	      if (objects[jj].name === 'germ') {
-	        if (this.radius < 4) {
-	          this.destroy();
-	        } else {
-	          this.radius -= 0.04;
-	          objects[jj].eatPlasma(this);
-	        }
+	      if (objects[jj].name === 'germ' || objects[jj].name === 'leuko') {
+	        this.radius -= 0.02;
+	        objects[jj].eatPlasma(this);
 	      }
 	    }
 	  }
 	};
 	
+	Plasma.prototype.replicate = function () {
+	  var dnaCopy; var mutationFactor;
+	  mutationFactor = Math.random()*5;
+	  if (mutationFactor < 2.5) { mutationFactor = 0; }
+	  dnaCopy = {
+	    moveSpeed: this.dna.moveSpeed + (Math.random()-0.5)*mutationFactor,
+	    initRadius: this.dna.initRadius + (Math.random()-0.5)*mutationFactor,
+	    mitosisRadius: this.dna.mitosisRadius + (Math.random()-0.5)*mutationFactor,
+	  };
+	  if (dnaCopy.initRadius < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.moveSpeed < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.mitosisRadius < 2) { dnaCopy.initRadius = 3; }
+	  if (dnaCopy.mitosisRadius < dnaCopy.initRadius) { dnaCopy.mitosisRadius = dnaCopy.initRadius + 0.5; }
+	  objects.push(new Plasma(objects.length, this.pos.x, this.pos.y, dnaCopy));
+	  objects.push(new Plasma(objects.length, this.pos.x, this.pos.y, dnaCopy));
+	  window.cooldown = 32;
+	  this.radius = this.dna.initRadius;
+	};
 	
 	module.exports = Plasma;
 
 
 /***/ },
 /* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Leuko; var Cell; var Util;
+	Util = __webpack_require__(3);
+	Cell = __webpack_require__(2);
+	Protein = __webpack_require__(5);
+	objects = __webpack_require__(1);
+	
+	Leuko = function (index, x, y, dna) {
+	  this.index = index;
+	  this.name = 'leuko';
+	  this.age = 0;
+	  this.active = false;
+	  this.color = '#bbccdd';
+	  this.alpha = 1;
+	  if (!dna) {
+	    this.dna = {
+	      moveSpeed: 1.25,
+	      initRadius: 5,
+	      mitosisRadius: 8,
+	      germAttraction: 6,
+	    };
+	  } else {
+	    this.dna = dna;
+	  }
+	  this.radius = this.dna.initRadius;
+	  this.speed = {
+	    x: 0,
+	    y: 0,
+	  };
+	  this.pos = {
+	    x: x,
+	    y: y,
+	  };
+	};
+	
+	Util.inherits(Leuko, Cell);
+	
+	Leuko.prototype.act = function () {
+	  if (this.radius > 20) {
+	    this.alpha = 0.8;
+	  } else if (this.radius > 40) {
+	    this.alpha = 0.6;
+	  } else if (this.radius > 50) {
+	    this.alpha = 0.4;
+	  }
+	  this.pos.x += this.speed.x;
+	  this.pos.y += this.speed.y;
+	  if (Math.floor(Math.random()*100) < this.dna.germAttraction) {
+	    if (this.count('germ') > 1) {
+	      this.seekGerm();
+	    } else {
+	      this.seekPlasma();
+	    }
+	  }
+	  this.age += 1;
+	  if (this.age > 1800) {
+	    this.radius -= 0.002;
+	  }
+	  if (this.radius < this.dna.initRadius/2) {
+	    this.destroy();
+	  }
+	  if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
+	    this.replicate();
+	  }
+	};
+	
+	Leuko.prototype.seekGerm = function () {
+	  var target;
+	  target = this.findNearest('germ');
+	  if (target) {
+	    this.goTo(target.pos);
+	  }
+	};
+	
+	Leuko.prototype.seekPlasma = function () {
+	  var target;
+	  target = this.findNearest('plasma');
+	  if (target) {
+	    this.goTo(target.pos);
+	  }
+	};
+	
+	Leuko.prototype.eatGerm = function (germ) {
+	  this.radius += 0.015;
+	  this.goTo({x: germ.pos.x-16+Math.random()*32, y: germ.pos.y-16+Math.random()*32});
+	  if (this.radius > this.dna.mitosisRadius) { this.radius = this.dna.mitosisRadius; }
+	};
+	
+	Leuko.prototype.count = function (name) {
+	  var cc; var count;
+	  count = 0;
+	  for (cc=0; cc < objects.length; cc++) {
+	    if (objects[cc] && objects[cc].name === name) {
+	      count++;
+	    }
+	  }
+	  return count;
+	};
+	
+	Leuko.prototype.eatPlasma = function (plasma) {
+	  if (this.count('germ') <= 3) {
+	    this.goTo({x: plasma.pos.x-16+Math.random()*32, y: plasma.pos.y-16+Math.random()*32});
+	  }
+	  this.radius += 0.02;
+	};
+	
+	Leuko.prototype.replicate = function () {
+	    var dnaCopy; var mutationFactor; var aa;
+	    mutationFactor = Math.random()*5;
+	    if (mutationFactor < 2.5) { mutationFactor = 0; }
+	    dnaCopy = {
+	      moveSpeed: this.dna.moveSpeed + (Math.random()-0.5)*mutationFactor,
+	      initRadius: this.dna.initRadius + (Math.random()-0.5)*mutationFactor,
+	      mitosisRadius: this.dna.mitosisRadius + (Math.random()-0.5)*mutationFactor,
+	      germAttraction: this.dna.germAttraction + (Math.random()-0.5)*mutationFactor,
+	    };
+	    if (dnaCopy.initRadius < 1) { dnaCopy.initRadius = 2; }
+	    if (dnaCopy.moveSpeed < 1) { dnaCopy.initRadius = 2; }
+	    if (dnaCopy.mitosisRadius < 2) { dnaCopy.initRadius = 3; }
+	    if (dnaCopy.mitosisRadius < dnaCopy.initRadius) { dnaCopy.mitosisRadius = dnaCopy.initRadius + 0.5; }
+	    if (this.count('germ') > this.count('leuko') || Math.random() > 0.85) {
+	      objects.push(new Leuko(objects.length, this.pos.x, this.pos.y, dnaCopy));
+	    } else {
+	      this.age = 0;
+	      for (aa=0; aa < 10; aa++) {
+	        objects.push(new Protein(objects.length, this.pos.x-16+(Math.random()*32), this.pos.y-16+(Math.random()*32)));
+	      }
+	    }
+	    window.cooldown = 32;
+	    this.radius = this.dna.initRadius;
+	};
+	
+	module.exports = Leuko;
+
+
+/***/ },
+/* 8 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Clicker; var objects;
@@ -517,7 +811,7 @@
 
 
 /***/ },
-/* 8 */
+/* 9 */
 /***/ function(module, exports) {
 
 	var Blank;

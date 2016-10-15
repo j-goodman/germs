@@ -6,6 +6,7 @@ Window.newGame = function () {
   Cell = require('./cell.js');
   Germ = require('./germ.js');
   Plasma = require('./plasma.js');
+  Leuko = require('./leuko.js');
   Clicker = require('./clicker.js');
   Protein = require('./protein.js');
   Blank = require('./blank.js');
@@ -33,18 +34,28 @@ Window.newGame = function () {
 
   // 4. INITIALIZE WORLD
   initializeWorld = function () {
-    var clicker; var ff;
+    var clicker; var ff; var count;
+    count = {
+      leuko: 2,
+      germ: 4,
+      plasma: 12,
+      protein: 240,
+    };
     clicker = new Clicker(objects.length);
     clicker.init();
     objects.push(clicker);
-    for (ff=0; ff < 12; ff++) {
+    for (ff=0; ff < count.plasma; ff++) {
       objects.push(new Plasma(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
     }
-    for (ff=0; ff < 120; ff++) {
+    for (ff=0; ff < count.protein; ff++) {
       objects.push(new Protein(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
     }
-    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
-    objects.push(new Germ(objects.length, 100+Math.random()*650, 20+Math.pow((Math.random()*20), 2)));
+    for (ff=0; ff < count.germ; ff++) {
+      objects.push(new Germ(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
+    }
+    for (ff=0; ff < count.leuko; ff++) {
+      objects.push(new Leuko(objects.length, Math.random()*window.innerWidth*0.96, Math.random()*window.innerHeight*0.96));
+    }
     window.cooldown = 0;
   };
 
@@ -60,14 +71,14 @@ Window.newGame = function () {
       }
     }
     window.cooldown -= 1;
-    console.log(objects.length);
+    // console.log(objects.length);
   };
 
   // 5. PLAY
   play = function () {
     var interval; var xx;
     initializeWorld();
-    interval = setInterval(intervalFunction, 32);
+    interval = setInterval(intervalFunction, 1);
   };
   initializeCanvas();
   play();
