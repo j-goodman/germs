@@ -78,7 +78,7 @@ Window.newGame = function () {
   play = function () {
     var interval; var xx;
     initializeWorld();
-    interval = setInterval(intervalFunction, 1);
+    interval = setInterval(intervalFunction, 32);
   };
   initializeCanvas();
   play();
