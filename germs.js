@@ -53,9 +53,9 @@
 	  Germ = __webpack_require__(4);
 	  Plasma = __webpack_require__(6);
 	  Leuko = __webpack_require__(7);
-	  Clicker = __webpack_require__(8);
+	  Clicker = __webpack_require__(9);
 	  Protein = __webpack_require__(5);
-	  Blank = __webpack_require__(9);
+	  Blank = __webpack_require__(10);
 	
 	  // 2. INITIALIZE CANVAS
 	  initializeCanvas = function () {
@@ -84,7 +84,7 @@
 	    count = {
 	      leuko: 2,
 	      germ: 4,
-	      plasma: 12,
+	      plasma: 26,
 	      protein: 240,
 	    };
 	    clicker = new Clicker(objects.length);
@@ -124,7 +124,7 @@
 	  play = function () {
 	    var interval; var xx;
 	    initializeWorld();
-	    interval = setInterval(intervalFunction, 32);
+	    interval = setInterval(intervalFunction, 1);
 	  };
 	  initializeCanvas();
 	  play();
@@ -342,6 +342,9 @@
 	    if (objects[ee] && objects[ee].pos && objects[ee].radius && Util.distanceBetween(objects[ee].pos, this.pos) < this.radius+objects[ee].radius) {
 	      if (objects[ee].name === 'leuko') {
 	        this.radius -= 0.02;
+	        objects[ee].eatGerm(this);
+	      } else if (objects[ee].name === 'parasite') {
+	        this.radius -= 0.004;
 	        objects[ee].eatGerm(this);
 	      }
 	    }
@@ -577,6 +580,7 @@
 	Util = __webpack_require__(3);
 	Cell = __webpack_require__(2);
 	Protein = __webpack_require__(5);
+	Parasite = __webpack_require__(8);
 	objects = __webpack_require__(1);
 	
 	Leuko = function (index, x, y, dna) {
@@ -612,6 +616,9 @@
 	Leuko.prototype.act = function () {
 	  if (this.radius > 20) {
 	    this.alpha = 0.8;
+	    if (this.count('parasite') < 1) {
+	      objects.push(new Parasite(objects.length, this.pos.x, this.pos.y));
+	    }
 	  } else if (this.radius > 40) {
 	    this.alpha = 0.6;
 	  } else if (this.radius > 50) {
@@ -635,6 +642,19 @@
 	  }
 	  if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
 	    this.replicate();
+	  }
+	  this.checkCollisions();
+	};
+	
+	Leuko.prototype.checkCollisions = function () {
+	  var ee;
+	  for (ee=0; ee < objects.length; ee++) {
+	    if (objects[ee] && objects[ee].pos && objects[ee].radius && Util.distanceBetween(objects[ee].pos, this.pos) < this.radius+objects[ee].radius) {
+	      if (objects[ee].name === 'parasite') {
+	        this.radius -= 0.004*this.radius/10;
+	        objects[ee].eatLeuko(this);
+	      }
+	    }
 	  }
 	};
 	
@@ -709,6 +729,129 @@
 
 /***/ },
 /* 8 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var Parasite; var Cell; var Util;
+	Util = __webpack_require__(3);
+	Cell = __webpack_require__(2);
+	Protein = __webpack_require__(5);
+	objects = __webpack_require__(1);
+	
+	Parasite = function (index, x, y, dna) {
+	  this.index = index;
+	  this.name = 'parasite';
+	  this.age = 0;
+	  this.active = false;
+	  this.color = '#440022';
+	  this.alpha = 1;
+	  if (!dna) {
+	    this.dna = {
+	      moveSpeed: 6,
+	      initRadius: 1,
+	      mitosisRadius: 2,
+	      leukoAttraction: 10,
+	    };
+	  } else {
+	    this.dna = dna;
+	  }
+	  this.radius = this.dna.initRadius;
+	  this.speed = {
+	    x: 0,
+	    y: 0,
+	  };
+	  this.pos = {
+	    x: x,
+	    y: y,
+	  };
+	};
+	
+	Util.inherits(Parasite, Cell);
+	
+	Parasite.prototype.act = function () {
+	  this.pos.x += this.speed.x;
+	  this.pos.y += this.speed.y;
+	  if (Math.floor(Math.random()*100) < this.dna.leukoAttraction) {
+	    if (this.count('leuko') > 2) {
+	      this.seekLeuko();
+	    } else {
+	      this.seekGerm();
+	    }
+	  }
+	  this.age += 1;
+	  if (this.age > 1800) {
+	    this.radius -= 0.005;
+	  }
+	  if (this.radius < this.dna.initRadius/4) {
+	    this.destroy();
+	  }
+	  if (this.radius > this.dna.mitosisRadius && !Math.floor(Math.random()*1000)) {
+	    this.replicate();
+	  }
+	};
+	
+	Parasite.prototype.seekGerm = function () {
+	  var target;
+	  target = this.findNearest('germ');
+	  if (target) {
+	    this.goTo(target.pos);
+	  }
+	};
+	
+	Parasite.prototype.seekLeuko = function () {
+	  var target;
+	  target = this.findNearest('leuko');
+	  if (target) {
+	    this.goTo(target.pos);
+	  }
+	};
+	
+	Parasite.prototype.eatLeuko = function (leuko) {
+	  this.radius += 0.004*leuko.radius/6;
+	  this.goTo({x: leuko.pos.x-16+Math.random()*32, y: leuko.pos.y-16+Math.random()*32});
+	  if (this.radius > this.dna.mitosisRadius+0.2) { this.radius = this.dna.mitosisRadius; }
+	};
+	
+	Parasite.prototype.eatGerm = function (germ) {
+	  this.radius += 0.004;
+	  this.goTo({x: germ.pos.x-16+Math.random()*32, y: germ.pos.y-16+Math.random()*32});
+	  if (this.radius > this.dna.mitosisRadius+0.2) { this.radius = this.dna.mitosisRadius; }
+	};
+	
+	Parasite.prototype.count = function (name) {
+	  var cc; var count;
+	  count = 0;
+	  for (cc=0; cc < objects.length; cc++) {
+	    if (objects[cc] && objects[cc].name === name) {
+	      count++;
+	    }
+	  }
+	  return count;
+	};
+	
+	Parasite.prototype.replicate = function () {
+	  var dnaCopy; var mutationFactor; var aa;
+	  mutationFactor = Math.random()*5;
+	  if (mutationFactor < 2.5) { mutationFactor = 0; }
+	  dnaCopy = {
+	    moveSpeed: this.dna.moveSpeed + (Math.random()-0.5)*mutationFactor,
+	    initRadius: this.dna.initRadius + (Math.random()-0.5)*mutationFactor,
+	    mitosisRadius: this.dna.mitosisRadius + (Math.random()-0.5)*mutationFactor,
+	    leukoAttraction: this.dna.germAttraction + (Math.random()-0.5)*mutationFactor,
+	  };
+	  if (dnaCopy.initRadius < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.moveSpeed < 1) { dnaCopy.initRadius = 2; }
+	  if (dnaCopy.mitosisRadius < 2) { dnaCopy.initRadius = 3; }
+	  if (dnaCopy.mitosisRadius < dnaCopy.initRadius) { dnaCopy.mitosisRadius = dnaCopy.initRadius + 0.5; }
+	  objects.push(new Parasite(objects.length, this.pos.x, this.pos.y, dnaCopy));
+	  this.radius = this.dna.initRadius;
+	  window.cooldown = 32;
+	};
+	
+	module.exports = Parasite;
+
+
+/***/ },
+/* 9 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var Clicker; var objects;
@@ -811,7 +954,7 @@
 
 
 /***/ },
-/* 9 */
+/* 10 */
 /***/ function(module, exports) {
 
 	var Blank;

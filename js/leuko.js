@@ -2,6 +2,7 @@ var Leuko; var Cell; var Util;
 Util = require('./util.js');
 Cell = require('./cell.js');
 Protein = require('./protein.js');
+Parasite = require('./parasite.js');
 objects = require('./objects.js');
 
 Leuko = function (index, x, y, dna) {
@@ -37,6 +38,9 @@ Util.inherits(Leuko, Cell);
 Leuko.prototype.act = function () {
   if (this.radius > 20) {
     this.alpha = 0.8;
+    if (this.count('parasite') < 1) {
+      objects.push(new Parasite(objects.length, this.pos.x, this.pos.y));
+    }
   } else if (this.radius > 40) {
     this.alpha = 0.6;
   } else if (this.radius > 50) {
@@ -60,6 +64,19 @@ Leuko.prototype.act = function () {
   }
   if (this.radius > this.dna.mitosisRadius && window.cooldown < 0) {
     this.replicate();
+  }
+  this.checkCollisions();
+};
+
+Leuko.prototype.checkCollisions = function () {
+  var ee;
+  for (ee=0; ee < objects.length; ee++) {
+    if (objects[ee] && objects[ee].pos && objects[ee].radius && Util.distanceBetween(objects[ee].pos, this.pos) < this.radius+objects[ee].radius) {
+      if (objects[ee].name === 'parasite') {
+        this.radius -= 0.004*this.radius/10;
+        objects[ee].eatLeuko(this);
+      }
+    }
   }
 };
 

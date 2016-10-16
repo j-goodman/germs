@@ -89,6 +89,9 @@ Germ.prototype.checkCollisions = function () {
       if (objects[ee].name === 'leuko') {
         this.radius -= 0.02;
         objects[ee].eatGerm(this);
+      } else if (objects[ee].name === 'parasite') {
+        this.radius -= 0.004;
+        objects[ee].eatGerm(this);
       }
     }
   }

@@ -38,7 +38,7 @@ Window.newGame = function () {
     count = {
       leuko: 2,
       germ: 4,
-      plasma: 12,
+      plasma: 26,
       protein: 240,
     };
     clicker = new Clicker(objects.length);
@@ -78,7 +78,7 @@ Window.newGame = function () {
   play = function () {
     var interval; var xx;
     initializeWorld();
-    interval = setInterval(intervalFunction, 32);
+    interval = setInterval(intervalFunction, 1);
   };
   initializeCanvas();
   play();
