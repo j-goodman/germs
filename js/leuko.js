@@ -39,7 +39,7 @@ Leuko.prototype.act = function () {
   if (this.radius > 20) {
     this.alpha = 0.8;
     if (this.count('parasite') < 1) {
-      objects.push(new Parasite(objects.length, this.pos.x, this.pos.y));
+      objects.push(new Parasite(objects.length, this.pos.x, this.pos.y, undefined, this));
     }
   } else if (this.radius > 40) {
     this.alpha = 0.6;
